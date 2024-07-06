@@ -3,19 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Market Dashboard</title>
+    <title>Stock Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 </head>
 <body>
-    <h1>Stock Market Dashboard</h1>
-    <form method="post">
-        <label for="ticker">Stock Ticker:</label>
-        <input type="text" id="ticker" name="ticker" required>
-        <label for="window">SMA Window:</label>
-        <input type="number" id="window" name="window" required>
-        <button type="submit">Get Data</button>
-    </form>
-    {% if plot_url %}
-    <img src="data:image/png;base64,{{ plot_url }}">
-    {% endif %}
+    <div class="container">
+        <h1 class="mt-4">Stock Dashboard</h1>
+        <form method="post">
+            <div class="form-group">
+                <label for="ticker">Stock Ticker</label>
+                <input type="text" class="form-control" id="ticker" name="ticker" required>
+            </div>
+            <div class="form-group">
+                <label for="window">SMA Window</label>
+                <input type="number" class="form-control" id="window" name="window" required>
+            </div>
+            <div class="form-group">
+                <label for="future_days">Prediction Days</label>
+                <input type="number" class="form-control" id="future_days" name="future_days" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        {% if plot_url %}
+        <div class="mt-4">
+            <h3>Stock Price and SMA Chart</h3>
+            <img src="data:image/png;base64,{{ plot_url }}" class="img-fluid" alt="Stock Price and SMA Chart">
+        </div>
+        {% endif %}
+
+        {% if prediction %}
+        <div class="mt-4">
+            <h3>Stock Price Prediction</h3>
+            <ul>
+                {% for day, price in prediction.items() %}
+                <li>Day {{ day }}: {{ price }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
 </body>
 </html>
