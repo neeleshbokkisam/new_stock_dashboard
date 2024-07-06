@@ -2,6 +2,8 @@ import matplotlib
 matplotlib.use('Agg')  # Use a non-interactive backend
 
 from flask import Flask, render_template, request
+from apscheduler.schedulers.background import BackgroundScheduler
+
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -9,10 +11,25 @@ from stock_data import get_stock_data, calculate_sma, predict_stock_price
 from io import BytesIO
 import base64
 import logging
+import atexit
 
 app = Flask(__name__)
+scheduler = BackgroundScheduler()
+data_store = {}
+def fetch_latest_data():
+    tickers = ['AAPL', 'GOOG', 'MSFT']  # Add any other tickers you want to track
+    for ticker in tickers:
+        data = get_stock_data(ticker)
+        data_store[ticker] = data
+        logging.info(f"Updated data for {ticker}")
 
+# Schedule the task to run every day at a specific time
+scheduler.add_job(func=fetch_latest_data, trigger="interval", hours=24)
+scheduler.start()
+# Ensure the scheduler is shut down when the app exits
+atexit.register(lambda: scheduler.shutdown())
 # Set up logging
+
 logging.basicConfig(level=logging.INFO)
 
 def get_stock_data(ticker):
@@ -41,7 +58,12 @@ def index():
             window = int(request.form['window'])
             future_days = int(request.form['future_days'])
 
-            data = get_stock_data(ticker)
+            if ticker in data_store:
+                data = data_store[ticker]
+            else:
+                data = get_stock_data(ticker)
+                data_store[ticker] = data
+
             if data is not None:
                 data['SMA'] = calculate_sma(data, window)
 
