@@ -6,3 +6,4 @@ plotly
 pandas==1.3.3
 numpy==1.19.5
 matplotlib
+apscheduler
