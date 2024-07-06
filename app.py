@@ -16,12 +16,14 @@ import atexit
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
 data_store = {}
+
 def fetch_latest_data():
     tickers = ['AAPL', 'GOOG', 'MSFT']  # Add any other tickers you want to track
     for ticker in tickers:
         data = get_stock_data(ticker)
-        data_store[ticker] = data
-        logging.info(f"Updated data for {ticker}")
+        if data is not None:
+            data_store[ticker] = data
+            logging.info(f"Updated data for {ticker}")
 
 # Schedule the task to run every day at a specific time
 scheduler.add_job(func=fetch_latest_data, trigger="interval", hours=24)
@@ -31,22 +33,6 @@ atexit.register(lambda: scheduler.shutdown())
 # Set up logging
 
 logging.basicConfig(level=logging.INFO)
-
-def get_stock_data(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period="1y")
-        return hist
-    except Exception as e:
-        logging.error(f"Error fetching stock data for {ticker}: {e}")
-        return None
-
-def calculate_sma(data, window):
-    try:
-        return data['Close'].rolling(window=window).mean()
-    except Exception as e:
-        logging.error(f"Error calculating SMA: {e}")
-        return None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -62,24 +48,28 @@ def index():
                 data = data_store[ticker]
             else:
                 data = get_stock_data(ticker)
-                data_store[ticker] = data
+                if data is not None:
+                    data_store[ticker] = data
 
             if data is not None:
-                data['SMA'] = calculate_sma(data, window)
-
+                # Plotting
                 plt.figure(figsize=(10, 5))
                 plt.plot(data['Close'], label='Close Price')
-                plt.plot(data['SMA'], label='SMA')
-                plt.title(f'{ticker} Stock Price and SMA')
+                sma = calculate_sma(data, window)
+                if sma is not None:
+                    plt.plot(sma, label=f'SMA {window}')
+                plt.legend()
+                plt.title(f'Stock Price and SMA for {ticker}')
                 plt.xlabel('Date')
                 plt.ylabel('Price')
-                plt.legend()
-
+                plt.grid()
                 img = BytesIO()
                 plt.savefig(img, format='png')
+                plt.close()
                 img.seek(0)
                 plot_url = base64.b64encode(img.getvalue()).decode('utf8')
 
+                # Prediction
                 predictions = predict_stock_price(data, future_days)
                 prediction = {i+1: pred for i, pred in enumerate(predictions)}
             else:
