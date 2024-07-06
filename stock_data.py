@@ -4,6 +4,8 @@ from sklearn.linear_model import LinearRegression
 print("scikit-learn is installed and imported successfully.")
 from sklearn.model_selection import train_test_split
 import numpy as np
+import pmdarima as pm
+import logging
 
 def get_stock_data(ticker):
     stock = yf.Ticker(ticker)
@@ -13,23 +15,23 @@ def get_stock_data(ticker):
 def calculate_sma(data, window):
     return data['Close'].rolling(window=window).mean()
 
+def preprocess_data(data):
+    # Handle missing values and outliers if any
+    data = data.dropna()
+    return data
+
 def predict_stock_price(data, future_days):
-    data['Prediction'] = data['Close'].shift(-future_days)
+    close_prices = preprocess_data(data['Close'])
+    logging.info(f"Data for prediction after preprocessing: {close_prices.head()}")
 
-    X = np.array(data[['Close']])
-    X = X[:-future_days]
+    # Fit the Auto ARIMA model
+    model = pm.auto_arima(close_prices, seasonal=False, stepwise=True, suppress_warnings=True, error_action="ignore")
+    logging.info(f"Fitted ARIMA model: {model.summary()}")
 
-    y = np.array(data['Prediction'])
-    y = y[:-future_days]
-
-    model = LinearRegression()
-    model.fit(X, y)
-
-    future_X = np.array(data[['Close']])[-future_days:]
-    predicted_prices = model.predict(future_X)
-
-    return {i+1: price for i, price in enumerate(predicted_prices)}
-
+    # Make predictions
+    forecast = model.predict(n_periods=future_days)
+    logging.info(f"Forecast for next {future_days} days: {forecast}")
+    return forecast
 
 if __name__ == "__main__":
     ticker = "AAPL"

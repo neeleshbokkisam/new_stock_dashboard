@@ -57,12 +57,13 @@ def index():
                 plt.savefig(img, format='png')
                 img.seek(0)
                 plot_url = base64.b64encode(img.getvalue()).decode('utf8')
-                
-                prediction = predict_stock_price(data, future_days)
+
+                predictions = predict_stock_price(data, future_days)
+                prediction = {i+1: pred for i, pred in enumerate(predictions)}
             else:
-                print(f"No data returned for {ticker}")
+                logging.error(f"No data returned for {ticker}")
         except Exception as e:
-            print(f"Error processing request: {e}")
+            logging.error(f"Error processing request: {e}")
 
     return render_template('index.html', plot_url=plot_url, prediction=prediction)
 
